@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from .models import User, Course, Progress, NeuroProfile
 from .serializers import (
     CourseSerializer,
@@ -10,6 +10,13 @@ from .serializers import (
     UserSerializer,
     NeuroProfileSerializer
 )
+
+
+def home(request):
+    """
+    Simple function view to render the homepage.
+    """
+    return render(request, 'core/home.html')
 
 
 class CourseListView(generics.ListAPIView):

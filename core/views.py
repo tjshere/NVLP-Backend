@@ -99,7 +99,9 @@ class AuthProfileView(APIView):
             neuro_profile = user.neuro_profile
             neuro_profile_serializer = NeuroProfileSerializer(neuro_profile)
             neuro_profile_data = neuro_profile_serializer.data
-        except NeuroProfile.DoesNotExist:
+        except NeuroProfile.RelatedObjectDoesNotExist:
+            # User doesn't have a neuro profile yet
+            # RelatedObjectDoesNotExist is raised for missing OneToOne reverse relations
             neuro_profile_data = None
         
         return Response({

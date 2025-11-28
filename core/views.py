@@ -1,14 +1,18 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404, render
 from .models import User, Course, Progress, NeuroProfile
 from .serializers import (
     CourseSerializer,
     ProgressSerializer,
     UserSerializer,
-    NeuroProfileSerializer
+    NeuroProfileSerializer,
+    UserCreateSerializer,
+    UserLoginSerializer,
+    TokenSerializer
 )
 
 
@@ -101,4 +105,116 @@ class AuthProfileView(APIView):
         return Response({
             'user': user_serializer.data,
             'neuro_profile': neuro_profile_data
+        }, status=status.HTTP_200_OK)
+
+
+# --- Authentication Views ---
+
+class RegisterStudentView(APIView):
+    """
+    Registers a new student user.
+    Hashes the password and saves the user to the database.
+    Returns an access token immediately upon successful registration.
+    POST /api/auth/register
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """
+        Register a new student user and return JWT access token.
+        """
+        serializer = UserCreateSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            # Create the user
+            user = serializer.save()
+            
+            # Generate the 'Digital Key' (JWT Token)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            print(f"Registered new user: {user.email}")
+            
+            # Return token response
+            token_data = {
+                'access_token': access_token,
+                'token_type': 'bearer',
+                'expires_in_minutes': 30
+            }
+            
+            return Response(
+                token_data,
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class LoginForAccessTokenView(APIView):
+    """
+    Authenticates the user credentials.
+    If successful, generates and returns the JWT access token.
+    POST /api/auth/login
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """
+        Authenticate user and return JWT access token.
+        """
+        serializer = UserLoginSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            
+            # Generate the 'Digital Key' (JWT Token)
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            print(f"User logged in: {user.email}")
+            
+            # Return token response
+            token_data = {
+                'access_token': access_token,
+                'token_type': 'bearer',
+                'expires_in_minutes': 30
+            }
+            
+            return Response(
+                token_data,
+                status=status.HTTP_200_OK
+            )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+
+class ProtectedRouteView(APIView):
+    """
+    A protected route that requires a valid JWT access token.
+    The request.user will contain the authenticated user if successful.
+    GET /api/protected
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        A protected route that requires a valid JWT access token.
+        Returns welcome message and user data.
+        """
+        user = request.user
+        user_data = {
+            'user_id': str(user.id),
+            'email': user.email,
+            'username': user.username
+        }
+        
+        return Response({
+            'message': 'Welcome to the NVLP platform!',
+            'user_data': user_data
         }, status=status.HTTP_200_OK)

@@ -3,7 +3,10 @@ from .views import (
     CourseListView,
     CourseDetailView,
     ProgressView,
-    AuthProfileView
+    AuthProfileView,
+    RegisterStudentView,
+    LoginForAccessTokenView,
+    ProtectedRouteView
 )
 
 app_name = 'core'
@@ -16,7 +19,10 @@ urlpatterns = [
     # Progress endpoint
     path('api/progress/<int:user_id>/', ProgressView.as_view(), name='progress'),
     
-    # Authentication/profile endpoint
+    # Authentication endpoints
+    path('api/auth/register/', RegisterStudentView.as_view(), name='register-student'),
+    path('api/auth/login/', LoginForAccessTokenView.as_view(), name='login'),
     path('api/auth/profile/', AuthProfileView.as_view(), name='auth-profile'),
+    path('api/protected/', ProtectedRouteView.as_view(), name='protected-route'),
 ]
 

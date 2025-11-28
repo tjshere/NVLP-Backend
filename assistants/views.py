@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+from openai import OpenAI
 from .models import AI_Persona, ChatMessage
 from .serializers import ChatMessageSerializer
 
@@ -27,6 +29,15 @@ class ChatView(APIView):
         
         Returns the bot's response message.
         """
+        # Initialize OpenAI client
+        if not settings.OPENAI_API_KEY:
+            return Response(
+                {'error': 'OpenAI API key is not configured'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
         # Get message and persona_name from request
         serializer = ChatMessageSerializer(data=request.data)
         
@@ -39,7 +50,7 @@ class ChatView(APIView):
         message_text = serializer.validated_data['message']
         persona_name = serializer.validated_data['persona_name']
         
-        # Find the correct AI_Persona
+        # Fetch the AI_Persona object (DANI or LUCAS)
         ai_persona = get_object_or_404(AI_Persona, name=persona_name)
         
         # Save the User's message to the database
@@ -50,11 +61,25 @@ class ChatView(APIView):
             is_from_bot=False
         )
         
-        # Generate a Dummy Response
-        bot_response_text = (
-            f"Hello {request.user.username}, I am {ai_persona.name} ({ai_persona.full_name}). "
-            f"I received your message: {message_text}"
-        )
+        # Call OpenAI API
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": ai_persona.system_prompt},
+                    {"role": "user", "content": message_text}
+                ]
+            )
+            
+            # Extract the response content
+            bot_response_text = response.choices[0].message.content
+            
+        except Exception as e:
+            # Handle API errors gracefully
+            return Response(
+                {'error': f'OpenAI API error: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         # Save the Bot's message to the database
         bot_message = ChatMessage.objects.create(
@@ -65,7 +90,6 @@ class ChatView(APIView):
         )
         
         # Return the Bot's message as the response
-        response_serializer = ChatMessageSerializer(bot_message)
         return Response(
             {
                 'message': bot_response_text,

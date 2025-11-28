@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import User, NeuroProfile, Course, Progress
+from .models import User, NeuroProfile, Course, Progress, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -63,9 +63,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'password']
-        extra_kwargs = {
-            'password': {'write_only': True}
-        }
 
     def validate_email(self, value):
         """Check if email is already registered."""
@@ -148,4 +145,19 @@ class TokenSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     token_type = serializers.CharField(default='bearer')
     expires_in_minutes = serializers.IntegerField(default=30)
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Message model.
+    Includes sender, recipient, content, and timestamp.
+    The sender field is automatically set to the authenticated user and is read-only.
+    """
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    recipient_username = serializers.CharField(source='recipient.username', read_only=True)
+    
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']
+        read_only_fields = ['sender', 'timestamp']
 

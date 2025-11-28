@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404, render
-from .models import User, Course, Progress, NeuroProfile
+from .models import User, Course, Progress, NeuroProfile, Message
 from .serializers import (
     CourseSerializer,
     ProgressSerializer,
@@ -12,7 +12,8 @@ from .serializers import (
     NeuroProfileSerializer,
     UserCreateSerializer,
     UserLoginSerializer,
-    TokenSerializer
+    TokenSerializer,
+    MessageSerializer
 )
 
 
@@ -220,3 +221,51 @@ class ProtectedRouteView(APIView):
             'message': 'Welcome to the NVLP platform!',
             'user_data': user_data
         }, status=status.HTTP_200_OK)
+
+
+# --- Message Views ---
+
+class MessageSendView(generics.CreateAPIView):
+    """
+    API view to send a message.
+    POST /api/messages/send/
+    Requires authentication.
+    The sender field is automatically set to the authenticated user.
+    """
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        """Automatically set the sender to the authenticated user."""
+        serializer.save(sender=self.request.user)
+
+
+class InboxListView(generics.ListAPIView):
+    """
+    API view to list messages in the authenticated user's inbox.
+    GET /api/messages/inbox/
+    Requires authentication.
+    Shows only messages where the authenticated user is the recipient.
+    Ordered by timestamp (newest first).
+    """
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter messages to show only those received by the authenticated user."""
+        return Message.objects.filter(recipient=self.request.user).order_by('-timestamp')
+
+
+class SentListView(generics.ListAPIView):
+    """
+    API view to list messages sent by the authenticated user.
+    GET /api/messages/sent/
+    Requires authentication.
+    Shows only messages where the authenticated user is the sender.
+    """
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter messages to show only those sent by the authenticated user."""
+        return Message.objects.filter(sender=self.request.user).order_by('-timestamp')

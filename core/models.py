@@ -133,3 +133,42 @@ class Progress(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.course.title} ({self.completion_rate}%)"
+
+
+class Message(models.Model):
+    """
+    Message model for user-to-user messaging.
+    Stores messages with sender and recipient foreign keys.
+    """
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='sent_messages',
+        help_text='The user who sent the message'
+    )
+    
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='received_messages',
+        help_text='The user who received the message'
+    )
+    
+    content = models.TextField(
+        help_text='The message content'
+    )
+    
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When the message was created'
+    )
+    
+    class Meta:
+        ordering = ['-timestamp']  # Newest first
+        indexes = [
+            models.Index(fields=['recipient', 'timestamp']),
+            models.Index(fields=['sender', 'timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"From {self.sender.username} to {self.recipient.username}: {self.content[:50]}..."

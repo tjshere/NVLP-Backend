@@ -6,7 +6,10 @@ from .views import (
     AuthProfileView,
     RegisterStudentView,
     LoginForAccessTokenView,
-    ProtectedRouteView
+    ProtectedRouteView,
+    MessageSendView,
+    InboxListView,
+    SentListView
 )
 
 app_name = 'core'
@@ -24,5 +27,10 @@ urlpatterns = [
     path('api/auth/login/', LoginForAccessTokenView.as_view(), name='login'),
     path('api/auth/profile/', AuthProfileView.as_view(), name='auth-profile'),
     path('api/protected/', ProtectedRouteView.as_view(), name='protected-route'),
+    
+    # Message endpoints
+    path('api/messages/send/', MessageSendView.as_view(), name='message-send'),
+    path('api/messages/inbox/', InboxListView.as_view(), name='message-inbox'),
+    path('api/messages/sent/', SentListView.as_view(), name='message-sent'),
 ]
 

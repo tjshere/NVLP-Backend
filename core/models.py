@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from datetime import timedelta
 
 
@@ -172,3 +173,111 @@ class Message(models.Model):
     
     def __str__(self):
         return f"From {self.sender.username} to {self.recipient.username}: {self.content[:50]}..."
+
+
+class PomodoroTimerModel(models.Model):
+    """
+    Pomodoro timer settings and state for a user.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='pomodoro_timers',
+        help_text='The user this Pomodoro timer configuration belongs to',
+    )
+
+    work_duration = models.IntegerField(
+        default=25,
+        help_text='Work interval duration in minutes',
+    )
+
+    break_duration = models.IntegerField(
+        default=5,
+        help_text='Short break duration in minutes',
+    )
+
+    long_break_duration = models.IntegerField(
+        default=15,
+        help_text='Long break duration in minutes',
+    )
+
+    cycles_to_long_break = models.IntegerField(
+        default=4,
+        help_text='Number of work/break cycles before a long break',
+    )
+
+    current_status = models.CharField(
+        max_length=20,
+        help_text="Current timer status (e.g., 'Working', 'Breaking', 'Paused')",
+    )
+
+    session_start_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the current Pomodoro session started',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"PomodoroTimer for {self.user} - {self.current_status}"
+
+
+class TaskChunkingModel(models.Model):
+    """
+    A larger task or assignment broken down into smaller actionable steps.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='task_chunkings',
+        help_text='The user this task chunking belongs to',
+    )
+
+    main_task_title = models.CharField(
+        max_length=255,
+        help_text='Title of the main task or assignment',
+    )
+
+    is_complete = models.BooleanField(
+        default=False,
+        help_text='Whether the overall task has been completed',
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When this task chunking was created',
+    )
+
+    def __str__(self):
+        return f"TaskChunking: {self.main_task_title} (User: {self.user})"
+
+
+class TaskStepModel(models.Model):
+    """
+    Individual smaller steps that make up a chunked task.
+    """
+    task_chunk = models.ForeignKey(
+        TaskChunkingModel,
+        on_delete=models.CASCADE,
+        related_name='steps',
+        help_text='The parent task chunk this step belongs to',
+    )
+
+    step_description = models.CharField(
+        max_length=255,
+        help_text='Description of the actionable step',
+    )
+
+    is_step_complete = models.BooleanField(
+        default=False,
+        help_text='Whether this step is complete',
+    )
+
+    order = models.IntegerField(
+        help_text='Order of this step within the task chunk',
+    )
+
+    def __str__(self):
+        return f"Step {self.order} for {self.task_chunk.main_task_title}: {self.step_description[:50]}"

@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     CourseListView,
     CourseDetailView,
@@ -9,8 +10,15 @@ from .views import (
     ProtectedRouteView,
     MessageSendView,
     InboxListView,
-    SentListView
+    SentListView,
+    PomodoroTimerViewSet,
+    TaskChunkingViewSet
 )
+
+# Create a router and register viewsets
+router = DefaultRouter()
+router.register(r'pomodoro-timers', PomodoroTimerViewSet, basename='pomodoro-timer')
+router.register(r'task-chunkings', TaskChunkingViewSet, basename='task-chunking')
 
 app_name = 'core'
 
@@ -32,5 +40,8 @@ urlpatterns = [
     path('api/messages/send/', MessageSendView.as_view(), name='message-send'),
     path('api/messages/inbox/', InboxListView.as_view(), name='message-inbox'),
     path('api/messages/sent/', SentListView.as_view(), name='message-sent'),
+    
+    # EF Toolkit endpoints (via router)
+    path('api/', include(router.urls)),
 ]
 

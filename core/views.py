@@ -1,10 +1,10 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404, render
-from .models import User, Course, Progress, NeuroProfile, Message
+from .models import User, Course, Progress, NeuroProfile, Message, PomodoroTimerModel, TaskChunkingModel
 from .serializers import (
     CourseSerializer,
     ProgressSerializer,
@@ -13,7 +13,9 @@ from .serializers import (
     UserCreateSerializer,
     UserLoginSerializer,
     TokenSerializer,
-    MessageSerializer
+    MessageSerializer,
+    PomodoroTimerSerializer,
+    TaskChunkingSerializer
 )
 
 
@@ -269,3 +271,56 @@ class SentListView(generics.ListAPIView):
     def get_queryset(self):
         """Filter messages to show only those sent by the authenticated user."""
         return Message.objects.filter(sender=self.request.user).order_by('-timestamp')
+
+
+# --- EF Toolkit Views ---
+
+class PomodoroTimerViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for PomodoroTimerModel.
+    Provides list, create, retrieve, update, and destroy operations.
+    All operations require authentication and only operate on data belonging to the authenticated user.
+    
+    GET /api/pomodoro-timers/ - List all timers for the authenticated user
+    POST /api/pomodoro-timers/ - Create a new timer for the authenticated user
+    GET /api/pomodoro-timers/{id}/ - Retrieve a specific timer
+    PUT /api/pomodoro-timers/{id}/ - Update a specific timer
+    PATCH /api/pomodoro-timers/{id}/ - Partially update a specific timer
+    DELETE /api/pomodoro-timers/{id}/ - Delete a specific timer
+    """
+    serializer_class = PomodoroTimerSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter timers to show only those belonging to the authenticated user."""
+        return PomodoroTimerModel.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Automatically set the user to the authenticated user when creating."""
+        serializer.save(user=self.request.user)
+
+
+class TaskChunkingViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for TaskChunkingModel.
+    Provides list, create, retrieve, update, and destroy operations.
+    All operations require authentication and only operate on data belonging to the authenticated user.
+    Supports nested step creation/updates through the serializer.
+    
+    GET /api/task-chunkings/ - List all task chunkings for the authenticated user
+    POST /api/task-chunkings/ - Create a new task chunking with nested steps
+    GET /api/task-chunkings/{id}/ - Retrieve a specific task chunking with its steps
+    PUT /api/task-chunkings/{id}/ - Update a task chunking and its steps
+    PATCH /api/task-chunkings/{id}/ - Partially update a task chunking
+    DELETE /api/task-chunkings/{id}/ - Delete a task chunking (cascades to steps)
+    """
+    serializer_class = TaskChunkingSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter task chunkings to show only those belonging to the authenticated user."""
+        return TaskChunkingModel.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Automatically set the user to the authenticated user when creating."""
+        serializer.save(user=self.request.user)

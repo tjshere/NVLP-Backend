@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import User, NeuroProfile, Course, Progress, Message
+from .models import User, NeuroProfile, Course, Progress, Message, PomodoroTimerModel, TaskChunkingModel, TaskStepModel
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -160,4 +160,76 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']
         read_only_fields = ['sender', 'timestamp']
+
+
+# --- EF Toolkit Serializers ---
+
+class TaskStepSerializer(serializers.ModelSerializer):
+    """
+    Serializer for TaskStepModel.
+    Basic serializer for individual task steps.
+    """
+    class Meta:
+        model = TaskStepModel
+        fields = ['id', 'step_description', 'is_step_complete', 'order']
+        read_only_fields = ['id']
+
+
+class TaskChunkingSerializer(serializers.ModelSerializer):
+    """
+    Serializer for TaskChunkingModel.
+    Includes nested TaskStepSerializer as a writable field (steps) to allow
+    creating/updating steps when the main task is handled.
+    """
+    steps = TaskStepSerializer(many=True, required=False)
+    
+    class Meta:
+        model = TaskChunkingModel
+        fields = ['id', 'main_task_title', 'is_complete', 'created_at', 'steps']
+        read_only_fields = ['id', 'created_at']
+    
+    def create(self, validated_data):
+        """Create TaskChunkingModel with nested steps."""
+        steps_data = validated_data.pop('steps', [])
+        task_chunk = TaskChunkingModel.objects.create(**validated_data)
+        
+        for step_data in steps_data:
+            TaskStepModel.objects.create(task_chunk=task_chunk, **step_data)
+        
+        return task_chunk
+    
+    def update(self, instance, validated_data):
+        """Update TaskChunkingModel and handle nested steps."""
+        steps_data = validated_data.pop('steps', None)
+        
+        # Update main task fields
+        instance.main_task_title = validated_data.get('main_task_title', instance.main_task_title)
+        instance.is_complete = validated_data.get('is_complete', instance.is_complete)
+        instance.save()
+        
+        # Handle steps update if provided
+        if steps_data is not None:
+            # Delete existing steps
+            instance.steps.all().delete()
+            
+            # Create new steps
+            for step_data in steps_data:
+                TaskStepModel.objects.create(task_chunk=instance, **step_data)
+        
+        return instance
+
+
+class PomodoroTimerSerializer(serializers.ModelSerializer):
+    """
+    Serializer for PomodoroTimerModel.
+    Basic serializer for Pomodoro timer settings and state.
+    """
+    class Meta:
+        model = PomodoroTimerModel
+        fields = [
+            'id', 'work_duration', 'break_duration', 'long_break_duration',
+            'cycles_to_long_break', 'current_status', 'session_start_time',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 

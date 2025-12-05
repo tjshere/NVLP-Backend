@@ -121,16 +121,22 @@ class TokenSerializer(serializers.Serializer):
 class MessageSerializer(serializers.ModelSerializer):
     """
     Serializer for Message model.
-    Includes sender, recipient, content, and timestamp.
+    Includes sender_email, recipient_email, content, and timestamp.
     The sender field is automatically set to the authenticated user and is read-only.
+    The recipient field is write-only for message creation.
     """
     sender_email = serializers.CharField(source='sender.email', read_only=True)
     recipient_email = serializers.CharField(source='recipient.email', read_only=True)
+    recipient = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        write_only=True,
+        help_text='The recipient user ID (write-only)'
+    )
     
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'sender_email', 'recipient', 'recipient_email', 'content', 'timestamp']
-        read_only_fields = ['sender', 'timestamp']
+        fields = ['id', 'sender_email', 'recipient_email', 'recipient', 'content', 'timestamp']
+        read_only_fields = ['timestamp']
 
 
 # --- EF Toolkit Serializers ---

@@ -74,7 +74,7 @@ class ProgressView(APIView):
         
         return Response({
             'user_id': user_id,
-            'username': user.username,
+            'email': user.email,
             'progress': progress_data
         }, status=status.HTTP_200_OK)
 
@@ -215,8 +215,7 @@ class ProtectedRouteView(APIView):
         user = request.user
         user_data = {
             'user_id': str(user.id),
-            'email': user.email,
-            'username': user.username
+            'email': user.email
         }
         
         return Response({

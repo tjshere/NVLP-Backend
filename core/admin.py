@@ -7,15 +7,25 @@ from .models import User, NeuroProfile, Course, Progress
 class UserAdmin(BaseUserAdmin):
     """
     Custom admin for User model that extends Django's UserAdmin.
-    Adds the role field to the admin interface.
+    Uses email as the primary identifier and adds the role field.
     """
-    list_display = ['username', 'email', 'role', 'is_staff', 'is_active', 'date_joined']
+    list_display = ['email', 'role', 'is_staff', 'is_active', 'date_joined']
     list_filter = ['role', 'is_staff', 'is_active', 'date_joined']
-    fieldsets = BaseUserAdmin.fieldsets + (
+    ordering = ['email']
+    search_fields = ['email']
+    
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('NVLP Information', {'fields': ('role',)}),
     )
-    add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('NVLP Information', {'fields': ('role',)}),
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'role'),
+        }),
     )
 
 
@@ -26,7 +36,7 @@ class NeuroProfileAdmin(admin.ModelAdmin):
     """
     list_display = ['user', 'learning_style', 'created_at', 'updated_at']
     list_filter = ['learning_style', 'created_at']
-    search_fields = ['user__username', 'user__email', 'learning_style']
+    search_fields = ['user__email', 'learning_style']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
@@ -71,7 +81,7 @@ class ProgressAdmin(admin.ModelAdmin):
     """
     list_display = ['user', 'course', 'completion_rate', 'engagement_time', 'updated_at']
     list_filter = ['completion_rate', 'created_at', 'updated_at']
-    search_fields = ['user__username', 'user__email', 'course__title']
+    search_fields = ['user__email', 'course__title']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (

@@ -7,11 +7,11 @@ from .models import User, NeuroProfile, Course, Progress, Message, PomodoroTimer
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for User model.
-    Includes ID, username, email, and role.
+    Includes ID, email, and role.
     """
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role']
+        fields = ['id', 'email', 'role']
 
 
 class NeuroProfileSerializer(serializers.ModelSerializer):
@@ -124,12 +124,12 @@ class MessageSerializer(serializers.ModelSerializer):
     Includes sender, recipient, content, and timestamp.
     The sender field is automatically set to the authenticated user and is read-only.
     """
-    sender_username = serializers.CharField(source='sender.username', read_only=True)
-    recipient_username = serializers.CharField(source='recipient.username', read_only=True)
+    sender_email = serializers.CharField(source='sender.email', read_only=True)
+    recipient_email = serializers.CharField(source='recipient.email', read_only=True)
     
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'content', 'timestamp']
+        fields = ['id', 'sender', 'sender_email', 'recipient', 'recipient_email', 'content', 'timestamp']
         read_only_fields = ['sender', 'timestamp']
 
 

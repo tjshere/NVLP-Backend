@@ -72,22 +72,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create a new user with hashed password."""
-        # Use email as username (or generate a unique username)
-        email = validated_data['email']
-        username = email.split('@')[0]  # Use email prefix as username
-        
-        # Ensure username is unique
-        base_username = username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
-        
         user = User.objects.create_user(
-            username=username,
-            email=email,
+            email=validated_data['email'],
             password=validated_data['password'],
-            role='student'  # Students are not admins
+            role='student'
         )
         return user
 
@@ -109,31 +97,14 @@ class UserLoginSerializer(serializers.Serializer):
         email = attrs.get('email')
         password = attrs.get('password')
 
-        if email and password:
-            # Find user by email
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                raise serializers.ValidationError(
-                    "Incorrect email or password.",
-                    code='authorization'
-                )
-            
-            # Authenticate user
-            user = authenticate(username=user.username, password=password)
-            if not user:
-                raise serializers.ValidationError(
-                    "Incorrect email or password.",
-                    code='authorization'
-                )
-            
-            attrs['user'] = user
-        else:
-            raise serializers.ValidationError(
-                "Must include 'email' and 'password'.",
-                code='authorization'
-            )
-
+        # Authenticate user using email and password
+        # Django's authenticate() will use USERNAME_FIELD='email' from the User model
+        user = authenticate(request=None, username=email, password=password)
+        
+        if not user:
+            raise serializers.ValidationError("Invalid credentials provided.")
+        
+        attrs['user'] = user
         return attrs
 
 

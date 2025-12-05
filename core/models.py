@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.conf import settings
 from datetime import timedelta
 
@@ -9,9 +9,44 @@ def default_timedelta():
     return timedelta(0)
 
 
-class User(AbstractUser):
+class UserManager(BaseUserManager):
     """
-    Custom User model that extends Django's AbstractUser.
+    Custom user manager where email is the unique identifier
+    for authentication instead of username.
+    """
+    
+    def create_user(self, email, password=None, **extra_fields):
+        """
+        Create and save a regular user with the given email and password.
+        """
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_superuser(self, email, password=None, **extra_fields):
+        """
+        Create and save a superuser with the given email and password.
+        """
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+        
+        return self.create_user(email, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    """
+    Custom User model that uses email as the primary login field.
+    Extends AbstractBaseUser and PermissionsMixin.
     Adds a role field to distinguish between student, educator, and parent.
     """
     ROLE_CHOICES = [
@@ -20,6 +55,21 @@ class User(AbstractUser):
         ('parent', 'Parent'),
     ]
     
+    email = models.EmailField(
+        unique=True,
+        help_text='User email address (used for login)'
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Designates whether this user should be treated as active.'
+    )
+    
+    is_staff = models.BooleanField(
+        default=False,
+        help_text='Designates whether the user can log into this admin site.'
+    )
+    
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
@@ -27,8 +77,22 @@ class User(AbstractUser):
         help_text='User role in the platform'
     )
     
+    date_joined = models.DateTimeField(
+        auto_now_add=True,
+        help_text='When the user account was created'
+    )
+    
+    objects = UserManager()
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []  # Email is already required as USERNAME_FIELD
+    
+    class Meta:
+        verbose_name = 'user'
+        verbose_name_plural = 'users'
+    
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return f"{self.email} ({self.get_role_display()})"
 
 
 class NeuroProfile(models.Model):
@@ -64,7 +128,7 @@ class NeuroProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"NeuroProfile for {self.user.username}"
+        return f"NeuroProfile for {self.user.email}"
 
 
 class Course(models.Model):
@@ -133,7 +197,7 @@ class Progress(models.Model):
         verbose_name_plural = 'Progress records'
     
     def __str__(self):
-        return f"{self.user.username} - {self.course.title} ({self.completion_rate}%)"
+        return f"{self.user.email} - {self.course.title} ({self.completion_rate}%)"
 
 
 class Message(models.Model):
@@ -172,7 +236,7 @@ class Message(models.Model):
         ]
     
     def __str__(self):
-        return f"From {self.sender.username} to {self.recipient.username}: {self.content[:50]}..."
+        return f"From {self.sender.email} to {self.recipient.email}: {self.content[:50]}..."
 
 
 class PomodoroTimerModel(models.Model):

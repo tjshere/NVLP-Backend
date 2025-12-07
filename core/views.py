@@ -30,53 +30,48 @@ class CourseListView(generics.ListAPIView):
     """
     API view to list all courses.
     GET /api/courses/
+    Requires authentication.
     """
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class CourseDetailView(generics.RetrieveAPIView):
     """
     API view to retrieve course details.
     GET /api/courses/{id}/
+    Requires authentication.
     """
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     lookup_field = 'pk'
+    permission_classes = [IsAuthenticated]
 
 
-class ProgressView(APIView):
+class ProgressViewSet(viewsets.ModelViewSet):
     """
-    API view to retrieve progress summary for a user.
-    GET /api/progress/{user_id}/
+    ViewSet for Progress model.
+    Provides list, create, retrieve, update, and destroy operations.
+    All operations require authentication and only operate on data belonging to the authenticated user.
+    
+    GET /api/progress/ - List all progress records for the authenticated user
+    POST /api/progress/ - Create a new progress record for the authenticated user
+    GET /api/progress/{id}/ - Retrieve a specific progress record
+    PUT /api/progress/{id}/ - Update a specific progress record
+    PATCH /api/progress/{id}/ - Partially update a specific progress record
+    DELETE /api/progress/{id}/ - Delete a specific progress record
     """
-    def get(self, request, user_id):
-        """
-        Retrieve all progress records for a specific user.
-        Returns a list of progress records with course information.
-        """
-        user = get_object_or_404(User, id=user_id)
-        progress_records = Progress.objects.filter(user=user)
-        
-        # Serialize progress records
-        serializer = ProgressSerializer(progress_records, many=True)
-        
-        # Include course information in the response
-        progress_data = []
-        for progress in progress_records:
-            course_serializer = CourseSerializer(progress.course)
-            progress_serializer = ProgressSerializer(progress)
-            progress_data.append({
-                'course': course_serializer.data,
-                'completion_rate': progress.completion_rate,
-                'engagement_time': str(progress.engagement_time),
-            })
-        
-        return Response({
-            'user_id': user_id,
-            'email': user.email,
-            'progress': progress_data
-        }, status=status.HTTP_200_OK)
+    serializer_class = ProgressSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter progress records to show only those belonging to the authenticated user."""
+        return Progress.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Automatically set the user to the authenticated user when creating."""
+        serializer.save(user=self.request.user)
 
 
 class AuthProfileView(APIView):

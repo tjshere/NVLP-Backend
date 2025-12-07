@@ -37,11 +37,18 @@ class CourseSerializer(serializers.ModelSerializer):
 class ProgressSerializer(serializers.ModelSerializer):
     """
     Serializer for Progress model.
-    Includes completion_rate and engagement_time.
+    Includes nested course details for reads and write-only course ID for updates.
     """
+    # Add a nested serializer for read operations
+    course_detail = CourseSerializer(source='course', read_only=True)
+    
+    # Add a write-only PrimaryKey field for creating/linking a new Progress record to a Course ID
+    course = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), write_only=True)
+
     class Meta:
         model = Progress
-        fields = ['completion_rate', 'engagement_time']
+        fields = ['id', 'course', 'course_detail', 'completion_rate', 'engagement_time', 'updated_at']
+        read_only_fields = ['id', 'course_detail', 'updated_at']
 
 
 # --- Authentication Serializers ---

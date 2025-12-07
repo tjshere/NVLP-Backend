@@ -3,10 +3,8 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.conf import settings
 from datetime import timedelta
 
-
-def default_timedelta():
-    """Default function for DurationField that returns zero timedelta."""
-    return timedelta(0)
+# Default timedelta for DurationField
+default_timedelta = timedelta(seconds=0)
 
 
 class UserManager(BaseUserManager):

@@ -14,7 +14,9 @@ from .views import (
     SentListView,
     # EF Toolkit viewsets
     PomodoroTimerViewSet,
-    TaskChunkingViewSet
+    TaskChunkingViewSet,
+    # Progress ViewSet
+    ProgressViewSet
 )
 
 app_name = 'core'
@@ -23,6 +25,7 @@ app_name = 'core'
 router = DefaultRouter()
 router.register(r'ef/timer', PomodoroTimerViewSet, basename='pomodoro-timer')
 router.register(r'ef/tasks', TaskChunkingViewSet, basename='task-chunking')
+router.register(r'progress', ProgressViewSet, basename='progress')
 
 urlpatterns = [
     # --- Authentication Endpoints ---

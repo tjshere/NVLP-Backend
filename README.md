@@ -2,10 +2,21 @@
 
 The backend infrastructure for an adaptive learning platform designed to support neurodivergent students (Autism, ADHD, Dyslexia, Dyscalculia, etc.). This system uses AI and real-time sensory tracking to modify the learning experience dynamically.
 
-## 🚀 Current Status: Phase 2 Complete (Intelligence & Infrastructure)
+### 🚀 Current Status: Phase 2 Complete (Intelligence & Infrastructure)
 * **Authentication:** Secure Email-based Login (JWT).
 * **AI Assistants:** "LUCAS" (Academic) and "DANI" (Emotional Support) powered by OpenAI GPT-4o.
-* **Adaptive Engine:** A "Nervous System" that tracks engagement/sensory data and triggers 47+ distinct adaptations.
+* **Adaptive Engine:** A "Nervous System" seeded with **47 Clinical Neuro-Adaptive Rules**.
+* **Supported Neuro-Profiles:** The system currently holds logic for **10 specific learner profiles**:
+  * Autistic
+  * ADHD
+  * Dyslexic
+  * Dyscalculia
+  * Dyspraxia
+  * Auditory Processing
+  * Gifted / Twice-Exceptional (2e)
+  * Anxiety
+  * Sensory Processing
+  * Executive Function (EF) Support
 * **EF Toolkit:** APIs for Pomodoro Timers and Task Chunking.
 
 ---

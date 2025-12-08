@@ -45,7 +45,7 @@ class EngagementMetric(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.timestamp.strftime('%Y-%m-%d %H:%M')} (Completion: {self.completion_rate}%)"
+        return f"{self.user.email} - {self.timestamp.strftime('%Y-%m-%d %H:%M')} (Completion: {self.completion_rate}%)"
 
 
 class SensoryLog(models.Model):
@@ -84,7 +84,7 @@ class SensoryLog(models.Model):
     
     def __str__(self):
         overload_status = "OVERLOAD" if self.sensory_overload_flag else "OK"
-        return f"{self.user.username} - {self.timestamp.strftime('%Y-%m-%d %H:%M')} (Mood: {self.mood_score:.2f}, {overload_status})"
+        return f"{self.user.email} - {self.timestamp.strftime('%Y-%m-%d %H:%M')} (Mood: {self.mood_score:.2f}, {overload_status})"
 
 
 class AdaptiveRule(models.Model):

@@ -4,7 +4,7 @@ The backend infrastructure for an adaptive learning platform designed to support
 
 ### 🚀 Current Status: Phase 2 Complete (Intelligence & Infrastructure)
 * **Authentication:** Secure Email-based Login (JWT).
-* **AI Assistants:** "LUCAS" (Academic) and "DANI" (Emotional Support) powered by OpenAI GPT-4o.
+* **AI Assistants:** "LUCAS" and "DANI" powered by OpenAI GPT-4o.
 * **Adaptive Engine:** A "Nervous System" seeded with **47 Clinical Neuro-Adaptive Rules**.
 * **Supported Neuro-Profiles:** The system currently holds logic for **10 specific learner profiles**:
   * Autistic

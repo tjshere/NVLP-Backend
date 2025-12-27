@@ -22,16 +22,24 @@ class UserSerializer(serializers.ModelSerializer):
         """Get preferences from NeuroProfile or return default preferences."""
         try:
             neuro_profile = obj.neuro_profile
-            return neuro_profile.sensory_preferences or {
-                'dark_mode': False,
-                'low_audio': False,
-                'reduce_animations': False,
+            prefs = neuro_profile.sensory_preferences or {}
+            # Ensure all expected keys exist with defaults
+            return {
+                'dark_mode': prefs.get('dark_mode', False),
+                'low_audio': prefs.get('low_audio', False),
+                'reduce_animations': prefs.get('reduce_animations', False),
+                'dyslexic_font': prefs.get('dyslexic_font', False),
+                'bionic_reading': prefs.get('bionic_reading', False),
+                'font_size': prefs.get('font_size', 'medium'),
             }
         except NeuroProfile.DoesNotExist:
             return {
                 'dark_mode': False,
                 'low_audio': False,
                 'reduce_animations': False,
+                'dyslexic_font': False,
+                'bionic_reading': False,
+                'font_size': 'medium',
             }
     
     def get_username(self, obj):

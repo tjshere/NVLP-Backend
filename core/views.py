@@ -1,10 +1,11 @@
 from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404, render
-from .models import User, Course, Progress, NeuroProfile, Message, PomodoroTimerModel, TaskChunkingModel
+from .models import User, Course, Progress, NeuroProfile, Message, PomodoroTimerModel, TaskChunkingModel, TaskStepModel
 from .serializers import (
     CourseSerializer,
     ProgressSerializer,
@@ -323,12 +324,13 @@ class TaskChunkingViewSet(viewsets.ModelViewSet):
     All operations require authentication and only operate on data belonging to the authenticated user.
     Supports nested step creation/updates through the serializer.
     
-    GET /api/task-chunkings/ - List all task chunkings for the authenticated user
-    POST /api/task-chunkings/ - Create a new task chunking with nested steps
-    GET /api/task-chunkings/{id}/ - Retrieve a specific task chunking with its steps
-    PUT /api/task-chunkings/{id}/ - Update a task chunking and its steps
-    PATCH /api/task-chunkings/{id}/ - Partially update a task chunking
-    DELETE /api/task-chunkings/{id}/ - Delete a task chunking (cascades to steps)
+    GET /api/ef/tasks/ - List all task chunkings for the authenticated user
+    POST /api/ef/tasks/ - Create a new task chunking with nested steps
+    GET /api/ef/tasks/{id}/ - Retrieve a specific task chunking with its steps
+    PUT /api/ef/tasks/{id}/ - Update a task chunking and its steps
+    PATCH /api/ef/tasks/{id}/ - Partially update a task chunking
+    DELETE /api/ef/tasks/{id}/ - Delete a task chunking (cascades to steps)
+    PATCH /api/ef/tasks/{task_id}/update_step/{step_id}/ - Update a specific step's completion status
     """
     serializer_class = TaskChunkingSerializer
     permission_classes = [IsAuthenticated]
@@ -340,3 +342,48 @@ class TaskChunkingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Automatically set the user to the authenticated user when creating."""
         serializer.save(user=self.request.user)
+    
+    @action(detail=True, methods=['patch'], url_path='update_step/(?P<step_id>[^/.]+)')
+    def update_step(self, request, pk=None, step_id=None):
+        """
+        Custom action to update a specific step's completion status.
+        This avoids race conditions and is more efficient than fetching/patching the entire task.
+        
+        PATCH /api/ef/tasks/{task_id}/update_step/{step_id}/
+        Body: { "is_step_complete": true/false }
+        """
+        # Get the task (automatically filtered by user via get_queryset)
+        task = self.get_object()
+        
+        # Get the step and verify it belongs to this task
+        try:
+            step = TaskStepModel.objects.get(id=step_id, task_chunk=task)
+        except TaskStepModel.DoesNotExist:
+            return Response(
+                {'detail': 'Step not found or does not belong to this task.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Update the step
+        is_complete = request.data.get('is_step_complete')
+        if is_complete is not None:
+            step.is_step_complete = is_complete
+            step.save()
+            
+            # Check if all steps are complete and update task completion status
+            all_steps_complete = task.steps.filter(is_step_complete=False).count() == 0
+            if all_steps_complete and not task.is_complete:
+                task.is_complete = True
+                task.save()
+            elif not all_steps_complete and task.is_complete:
+                task.is_complete = False
+                task.save()
+            
+            # Return updated task with all steps
+            serializer = self.get_serializer(task)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'detail': 'is_step_complete field is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )

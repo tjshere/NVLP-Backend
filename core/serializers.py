@@ -7,11 +7,42 @@ from .models import User, NeuroProfile, Course, Progress, Message, PomodoroTimer
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for User model.
-    Includes ID, email, and role.
+    Includes ID, email, role, and preferences from NeuroProfile.
     """
+    preferences = serializers.SerializerMethodField()
+    first_name = serializers.CharField(required=False, allow_blank=True, default='')
+    last_name = serializers.CharField(required=False, allow_blank=True, default='')
+    username = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'email', 'role']
+        fields = ['id', 'email', 'role', 'first_name', 'last_name', 'username', 'is_active', 'preferences']
+    
+    def get_preferences(self, obj):
+        """Get preferences from NeuroProfile or return default preferences."""
+        try:
+            neuro_profile = obj.neuro_profile
+            return neuro_profile.sensory_preferences or {
+                'dark_mode': False,
+                'low_audio': False,
+                'reduce_animations': False,
+            }
+        except NeuroProfile.DoesNotExist:
+            return {
+                'dark_mode': False,
+                'low_audio': False,
+                'reduce_animations': False,
+            }
+    
+    def get_username(self, obj):
+        """Generate a display name from first_name, last_name, or email."""
+        if hasattr(obj, 'first_name') and hasattr(obj, 'last_name') and obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        elif hasattr(obj, 'first_name') and obj.first_name:
+            return obj.first_name
+        else:
+            # Return the part before @ in the email
+            return obj.email.split('@')[0].replace('.', ' ').title()
 
 
 class NeuroProfileSerializer(serializers.ModelSerializer):

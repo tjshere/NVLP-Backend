@@ -58,6 +58,18 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text='User email address (used for login)'
     )
     
+    first_name = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text='User first name'
+    )
+    
+    last_name = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text='User last name'
+    )
+    
     is_active = models.BooleanField(
         default=True,
         help_text='Designates whether this user should be treated as active.'

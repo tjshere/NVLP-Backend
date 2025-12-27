@@ -76,8 +76,9 @@ class ProgressViewSet(viewsets.ModelViewSet):
 
 class AuthProfileView(APIView):
     """
-    API view to fetch authenticated user's profile data.
-    GET /api/auth/profile/
+    API view to fetch and update authenticated user's profile data.
+    GET /api/auth/profile/ - Get user profile
+    PATCH /api/auth/profile/ - Update user profile (including preferences)
     Requires authentication.
     """
     permission_classes = [IsAuthenticated]
@@ -91,21 +92,42 @@ class AuthProfileView(APIView):
         # Serialize user data
         user_serializer = UserSerializer(user)
         
-        # Get neuro profile if it exists
-        neuro_profile_data = None
-        try:
-            neuro_profile = user.neuro_profile
-            neuro_profile_serializer = NeuroProfileSerializer(neuro_profile)
-            neuro_profile_data = neuro_profile_serializer.data
-        except NeuroProfile.RelatedObjectDoesNotExist:
-            # User doesn't have a neuro profile yet
-            # RelatedObjectDoesNotExist is raised for missing OneToOne reverse relations
-            neuro_profile_data = None
+        return Response(user_serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request):
+        """
+        Update the authenticated user's profile.
+        Supports updating preferences (stored in NeuroProfile.sensory_preferences).
+        """
+        user = request.user
+        data = request.data
         
-        return Response({
-            'user': user_serializer.data,
-            'neuro_profile': neuro_profile_data
-        }, status=status.HTTP_200_OK)
+        # Handle preferences update
+        if 'preferences' in data:
+            preferences_data = data['preferences']
+            
+            # Get or create NeuroProfile for the user
+            neuro_profile, created = NeuroProfile.objects.get_or_create(user=user)
+            
+            # Update sensory preferences
+            neuro_profile.sensory_preferences = preferences_data
+            neuro_profile.save()
+            
+            print(f"Updated preferences for {user.email}: {preferences_data}")
+        
+        # Handle other user fields (first_name, last_name, etc.)
+        updateable_fields = ['first_name', 'last_name']
+        for field in updateable_fields:
+            if field in data:
+                setattr(user, field, data[field])
+        
+        # Save user model if any changes were made
+        if any(field in data for field in updateable_fields):
+            user.save()
+        
+        # Return updated user data
+        user_serializer = UserSerializer(user)
+        return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 
 # --- Authentication Views ---

@@ -6,16 +6,23 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from core.views import AuthProfileView, CourseListView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # Add these specific paths if they aren't in your core.urls
-    path('api/auth/profile/', include('core.urls')), 
-    path('api/courses/', include('core.urls')),
+    # User profile endpoint
+    path('api/auth/profile/', AuthProfileView.as_view(), name='auth-profile'), 
     
+    # Courses endpoint
+    path('api/courses/', CourseListView.as_view(), name='course-list'),
+    
+    # Include core URLs for other endpoints (messages, EF toolkit, progress)
+    path('api/', include('core.urls')),
+    
+    # Assistant/chat endpoints
     path('api/', include('assistants.urls')),
 ]
 

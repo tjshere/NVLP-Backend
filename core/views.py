@@ -19,61 +19,33 @@ from .serializers import (
     TaskChunkingSerializer
 )
 
-
 def home(request):
-    """
-    Simple function view to render the homepage.
-    """
+    """Simple function view to render the homepage."""
     return render(request, 'core/home.html')
 
-
 class CourseListView(generics.ListAPIView):
-    """
-    API view to list all courses.
-    GET /api/courses/
-    Requires authentication.
-    """
+    """GET /api/courses/ - Requires authentication."""
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated]
 
-
 class CourseDetailView(generics.RetrieveAPIView):
-    """
-    API view to retrieve course details.
-    GET /api/courses/{id}/
-    Requires authentication.
-    """
+    """GET /api/courses/{id}/ - Requires authentication."""
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     lookup_field = 'pk'
     permission_classes = [IsAuthenticated]
 
-
 class ProgressViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Progress model.
-    Provides list, create, retrieve, update, and destroy operations.
-    All operations require authentication and only operate on data belonging to the authenticated user.
-    
-    GET /api/progress/ - List all progress records for the authenticated user
-    POST /api/progress/ - Create a new progress record for the authenticated user
-    GET /api/progress/{id}/ - Retrieve a specific progress record
-    PUT /api/progress/{id}/ - Update a specific progress record
-    PATCH /api/progress/{id}/ - Partially update a specific progress record
-    DELETE /api/progress/{id}/ - Delete a specific progress record
-    """
+    """Full CRUD for Progress belonging to the authenticated user."""
     serializer_class = ProgressSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filter progress records to show only those belonging to the authenticated user."""
         return Progress.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
-        """Automatically set the user to the authenticated user when creating."""
         serializer.save(user=self.request.user)
-
 
 class AuthProfileView(APIView):
     """
@@ -85,13 +57,16 @@ class AuthProfileView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """
-        Retrieve the authenticated user's profile including user data and neuro profile.
-        """
         user = request.user
-        
-        # Serialize user data
         user_serializer = UserSerializer(user)
+        
+        neuro_profile_data = None
+        try:
+            neuro_profile = user.neuro_profile
+            neuro_profile_serializer = NeuroProfileSerializer(neuro_profile)
+            neuro_profile_data = neuro_profile_serializer.data
+        except NeuroProfile.RelatedObjectDoesNotExist:
+            neuro_profile_data = None
         
         return Response(user_serializer.data, status=status.HTTP_200_OK)
     
@@ -130,192 +105,67 @@ class AuthProfileView(APIView):
         user_serializer = UserSerializer(user)
         return Response(user_serializer.data, status=status.HTTP_200_OK)
 
-
 # --- Authentication Views ---
 
 class RegisterStudentView(APIView):
-    """
-    Registers a new student user.
-    Hashes the password and saves the user to the database.
-    Returns an access token immediately upon successful registration.
-    POST /api/auth/register
-    """
+    """POST /api/auth/register"""
     permission_classes = [AllowAny]
     
     def post(self, request):
-        """
-        Register a new student user and return JWT access token.
-        """
         serializer = UserCreateSerializer(data=request.data)
-        
         if serializer.is_valid():
-            # Create the user
             user = serializer.save()
-            
-            # Generate the 'Digital Key' (JWT Token)
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            
-            print(f"Registered new user: {user.email}")
-            
-            # Return token response
-            token_data = {
-                'access_token': access_token,
+            return Response({
+                'access_token': str(refresh.access_token),
                 'token_type': 'bearer',
                 'expires_in_minutes': 30
-            }
-            
-            return Response(
-                token_data,
-                status=status.HTTP_201_CREATED
-            )
-        
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginForAccessTokenView(APIView):
-    """
-    Authenticates the user credentials.
-    If successful, generates and returns the JWT access token.
-    POST /api/auth/login
-    """
+    """POST /api/auth/login"""
     permission_classes = [AllowAny]
     
     def post(self, request):
-        """
-        Authenticate user and return JWT access token.
-        """
         serializer = UserLoginSerializer(data=request.data)
-        
         if serializer.is_valid():
             user = serializer.validated_data['user']
-            
-            # Generate the 'Digital Key' (JWT Token)
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            
-            print(f"User logged in: {user.email}")
-            
-            # Return token response
-            token_data = {
-                'access_token': access_token,
+            return Response({
+                'access_token': str(refresh.access_token),
                 'token_type': 'bearer',
                 'expires_in_minutes': 30
-            }
-            
-            return Response(
-                token_data,
-                status=status.HTTP_200_OK
-            )
-        
-        return Response(
-            serializer.errors,
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
-
-class ProtectedRouteView(APIView):
-    """
-    A protected route that requires a valid JWT access token.
-    The request.user will contain the authenticated user if successful.
-    GET /api/protected
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        """
-        A protected route that requires a valid JWT access token.
-        Returns welcome message and user data.
-        """
-        user = request.user
-        user_data = {
-            'user_id': str(user.id),
-            'email': user.email
-        }
-        
-        return Response({
-            'message': 'Welcome to the NVLP platform!',
-            'user_data': user_data
-        }, status=status.HTTP_200_OK)
-
-
-# --- Message Views ---
+# --- Message & EF Toolkit Views (No Changes Needed) ---
 
 class MessageSendView(generics.CreateAPIView):
-    """
-    API view to send a message.
-    POST /api/messages/send/
-    Requires authentication.
-    The sender field is automatically set to the authenticated user.
-    """
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
-    
     def perform_create(self, serializer):
-        """Automatically set the sender to the authenticated user."""
         serializer.save(sender=self.request.user)
 
-
 class InboxListView(generics.ListAPIView):
-    """
-    API view to list messages in the authenticated user's inbox.
-    GET /api/messages/inbox/
-    Requires authentication.
-    Shows only messages where the authenticated user is the recipient.
-    Ordered by timestamp (newest first).
-    """
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
-    
     def get_queryset(self):
-        """Filter messages to show only those received by the authenticated user."""
         return Message.objects.filter(recipient=self.request.user).order_by('-timestamp')
 
-
 class SentListView(generics.ListAPIView):
-    """
-    API view to list messages sent by the authenticated user.
-    GET /api/messages/sent/
-    Requires authentication.
-    Shows only messages where the authenticated user is the sender.
-    """
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
-    
     def get_queryset(self):
-        """Filter messages to show only those sent by the authenticated user."""
         return Message.objects.filter(sender=self.request.user).order_by('-timestamp')
 
-
-# --- EF Toolkit Views ---
-
 class PomodoroTimerViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for PomodoroTimerModel.
-    Provides list, create, retrieve, update, and destroy operations.
-    All operations require authentication and only operate on data belonging to the authenticated user.
-    
-    GET /api/pomodoro-timers/ - List all timers for the authenticated user
-    POST /api/pomodoro-timers/ - Create a new timer for the authenticated user
-    GET /api/pomodoro-timers/{id}/ - Retrieve a specific timer
-    PUT /api/pomodoro-timers/{id}/ - Update a specific timer
-    PATCH /api/pomodoro-timers/{id}/ - Partially update a specific timer
-    DELETE /api/pomodoro-timers/{id}/ - Delete a specific timer
-    """
     serializer_class = PomodoroTimerSerializer
     permission_classes = [IsAuthenticated]
-    
     def get_queryset(self):
-        """Filter timers to show only those belonging to the authenticated user."""
         return PomodoroTimerModel.objects.filter(user=self.request.user)
-    
     def perform_create(self, serializer):
-        """Automatically set the user to the authenticated user when creating."""
         serializer.save(user=self.request.user)
-
 
 class TaskChunkingViewSet(viewsets.ModelViewSet):
     """
@@ -336,7 +186,6 @@ class TaskChunkingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filter task chunkings to show only those belonging to the authenticated user."""
         return TaskChunkingModel.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):

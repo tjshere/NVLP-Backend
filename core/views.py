@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.shortcuts import get_object_or_404, render
 from .models import User, Course, Progress, NeuroProfile, Message, PomodoroTimerModel, TaskChunkingModel, TaskStepModel
 from .serializers import (
@@ -236,3 +238,22 @@ class TaskChunkingViewSet(viewsets.ModelViewSet):
                 {'detail': 'is_step_complete field is required.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class FlexibleTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Extends SimpleJWT's TokenObtainPairSerializer to accept a username
+    (non-email string) in addition to email. If no '@' is found in the
+    identifier, the first superuser account is looked up automatically.
+    """
+    def validate(self, attrs):
+        identifier = attrs.get(self.username_field, '')
+        if identifier and '@' not in identifier:
+            user_obj = User.objects.filter(is_superuser=True).first()
+            if user_obj:
+                attrs[self.username_field] = user_obj.email
+        return super().validate(attrs)
+
+
+class FlexibleTokenObtainPairView(TokenObtainPairView):
+    serializer_class = FlexibleTokenObtainPairSerializer

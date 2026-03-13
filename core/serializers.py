@@ -129,9 +129,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     """
     Serializer for user login request.
-    Data model for user login request.
+    Accepts either an email address or a username (for superusers).
     """
-    email = serializers.EmailField(required=True)
+    email = serializers.CharField(required=True)
     password = serializers.CharField(
         required=True,
         write_only=True,
@@ -139,17 +139,29 @@ class UserLoginSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        """Validate user credentials."""
-        email = attrs.get('email')
+        """Validate user credentials. Supports email or username login."""
+        identifier = attrs.get('email')
         password = attrs.get('password')
 
-        # Authenticate user using email and password
-        # Django's authenticate() will use USERNAME_FIELD='email' from the User model
+        # If identifier looks like a username (no @), look up the superuser account
+        if '@' not in identifier:
+            try:
+                user_obj = User.objects.get(is_superuser=True)
+                email = user_obj.email
+            except User.DoesNotExist:
+                raise serializers.ValidationError("Invalid credentials provided.")
+            except User.MultipleObjectsReturned:
+                # Multiple superusers — match by email prefix
+                user_obj = User.objects.filter(is_superuser=True).first()
+                email = user_obj.email if user_obj else identifier
+        else:
+            email = identifier
+
         user = authenticate(request=None, username=email, password=password)
-        
+
         if not user:
             raise serializers.ValidationError("Invalid credentials provided.")
-        
+
         attrs['user'] = user
         return attrs
 

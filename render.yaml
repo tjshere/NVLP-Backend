@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nvlp-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: >
+      python manage.py migrate &&
+      python manage.py load_neuro_rules &&
+      python manage.py init_bots &&
+      python manage.py seed_demo &&
+      gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DJANGO_SETTINGS_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.9

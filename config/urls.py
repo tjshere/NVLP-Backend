@@ -1,14 +1,27 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from core.views import AuthProfileView, CourseListView, FlexibleTokenObtainPairView
 
+
+def api_root(request):
+    return JsonResponse({
+        'service': 'NVLP Backend',
+        'status': 'ok',
+        'client': 'https://tjshere.github.io/NVLP-Frontend/',
+    })
+
+
 urlpatterns = [
+    path('', api_root, name='api-root'),
     path('admin/', admin.site.urls),
     path('api/auth/login/', FlexibleTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # The frontend refreshes at this path; keep both routes working
+    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh_alias'),
 
     # User profile endpoint
     path('api/auth/profile/', AuthProfileView.as_view(), name='auth-profile'), 

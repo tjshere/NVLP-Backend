@@ -1,56 +1,59 @@
-# NVLP - Neurodivergent Learning Platform (Backend)
+# NVLP Backend
 
-The backend infrastructure for an adaptive learning platform designed to support neurodivergent students (Autism, ADHD, Dyslexia, Dyscalculia, etc.). This system uses AI and real-time sensory tracking to modify the learning experience dynamically.
+The API and intelligence layer for NVLP, the Neurodivergent Learning Platform.
 
-### 🚀 Current Status: Phase 2 Complete (Intelligence & Infrastructure)
-* **Authentication:** Secure Email-based Login (JWT).
-* **AI Assistants:** "LUCAS" and "DANI" powered by OpenAI GPT-4o.
-* **Adaptive Engine:** A "Nervous System" seeded with **47 Clinical Neuro-Adaptive Rules**.
-* **Supported Neuro-Profiles:** The system currently holds logic for **10 specific learner profiles**:
-  * Autistic
-  * ADHD
-  * Dyslexic
-  * Dyscalculia
-  * Dyspraxia
-  * Auditory Processing
-  * Gifted / Twice-Exceptional (2e)
-  * Anxiety
-  * Sensory Processing
-  * Executive Function (EF) Support
-* **EF Toolkit:** APIs for Pomodoro Timers and Task Chunking.
+Every screen the student sees is driven from here: authentication, courses, tasks, quiz results, and the adaptive engine that quietly rewires the experience around how each student actually learns. If the frontend is the face of NVLP, this is the nervous system.
 
----
+## What it does
 
-## 🛠️ Tech Stack
-* **Language:** Python 3.14
-* **Framework:** Django 5.2 + Django REST Framework
-* **AI Engine:** OpenAI API (GPT-4o Mini)
-* **Database:** SQLite (Dev) / PostgreSQL (Prod)
-* **Deployment:** Docker + Google Cloud Run (Ready)
+- **Adaptive Rules Engine.** A library of 47 clinically informed neuro-adaptive rules that map real-time signals to concrete interventions. Sensory overload detected? The platform dims visuals and lowers audio. Math anxiety detected? Timers disappear. The engine covers ten neuro-profiles: Autism, ADHD, Dyslexia, Dyscalculia, Dyspraxia, Auditory Processing, Gifted/2e, Anxiety, Sensory Processing, and Executive Function support.
+- **AI Assistants.** Two OpenAI-powered companions with distinct jobs. Lucas handles academic scaffolding ("explain fractions using pizza"), Dani handles executive function ("I'm overwhelmed, break this down for me").
+- **Executive Function Toolkit.** APIs for Pomodoro focus sessions and task chunking, so overwhelming assignments become sequences of small wins.
+- **Course Platform.** Courses, lessons, quiz scoring, and XP progression.
+- **Authentication.** JWT-based auth with email login and flexible superuser support.
 
----
+## Tech stack
 
-## ⚡ Key Features
+- Python with Django 5.2 and Django REST Framework
+- JWT authentication via SimpleJWT
+- OpenAI API for the assistant layer
+- SQLite in development, PostgreSQL in production
+- Docker and Google Cloud Run ready, served with Gunicorn and WhiteNoise
 
-### 1. The Adaptive Rules Engine
-The platform contains a library of **47 Neuro-Adaptive Rules** seeded from clinical data.
-* **Trigger:** "Sensory Overload Detected" -> **Action:** `AI_SENSORY_REDUCE` (Dims visuals, lowers audio).
-* **Trigger:** "Math Anxiety Detected" -> **Action:** `AI_NO_TIMER` (Removes countdowns).
+## Running locally
 
-### 2. Intelligent Chat Assistants
-* **LUCAS:** Helps with academic scaffolding (e.g., "Explain fractions using pizza").
-* **DANI:** Helps with executive function (e.g., "I'm overwhelmed, break this task down").
-
-### 3. Executive Function (EF) Tools
-Built-in tools to support student workflow:
-* **Pomodoro Timer API:** Tracks focus intervals.
-* **Task Chunking API:** Breaks large assignments into micro-steps.
-
----
-
-## 💻 Local Setup (For Developers)
-
-**1. Clone the Repository**
 ```bash
-git clone [https://github.com/tjshere/NVLP-Backend.git](https://github.com/tjshere/NVLP-Backend.git)
-cd NVLP-Backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Create a `.env` file in the project root with your configuration:
+
+```
+OPENAI_API_KEY=your-key-here
+```
+
+Then set up the database and start the server:
+
+```bash
+python manage.py migrate
+python manage.py runserver
+```
+
+The API serves on `http://127.0.0.1:8000`. Production settings live in `config/settings/production.py` and require `SECRET_KEY` to be set in the environment; the server refuses to start without it.
+
+## Project layout
+
+- `core/` — users, courses, tasks, and the primary API surface
+- `adaptive_engine/` — the neuro-adaptive rules library and signal handling
+- `assistants/` — Lucas and Dani, conversation history, and OpenAI integration
+- `config/` — Django settings split by environment
+
+## Related repositories
+
+- [NVLP-Frontend](https://github.com/tjshere/NVLP-Frontend) — the React client that students actually touch.
+
+## License
+
+This is proprietary software. The source is public to look at, not to take. See [LICENSE](LICENSE) for the full terms; for licensing inquiries, get in touch.

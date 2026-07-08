@@ -23,7 +23,7 @@ ALLOWED_HOSTS = ['*']
 # CSRF trusted origins for Cloud Run and Render
 CSRF_TRUSTED_ORIGINS = [
     'https://*.run.app',
-    'https://*.onrender.com',
+    'https://nvlp-backend.onrender.com',
 ]
 
 # CORS: allow the deployed frontend origin, extendable via env var
